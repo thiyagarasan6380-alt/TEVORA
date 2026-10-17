@@ -1,6 +1,10 @@
 import { Link } from "react-router-dom";
 
 function ProjectViewCard({ project }) {
+    const skills =
+    typeof project.skillName === "string"
+        ? project.skillName.split(",").map(skill => skill.trim()).filter(Boolean)
+        : project.skillName || [];
     return (
         <Link to={`/project/${project.id}`}>
         <div className="bg-white rounded-xl shadow-md p-5 mt-4">
@@ -29,7 +33,7 @@ function ProjectViewCard({ project }) {
 
             <div className="flex flex-wrap gap-2 mt-4">
 
-                {project.skillName?.map((skill, i) => (
+                {skills.map((skill, i) => (
                     <span
                         key={i}
                         className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full"
@@ -50,3 +54,4 @@ function ProjectViewCard({ project }) {
 }
 
 export default ProjectViewCard;
+

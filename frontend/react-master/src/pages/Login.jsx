@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import API_BASE_URL from "../api";
 
 
 function Login() {
@@ -11,7 +11,7 @@ function Login() {
     const navigate = useNavigate();
     function login() {
 
-    fetch("http://localhost:8080/users/login", {
+    fetch(`${API_BASE_URL}/users/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -32,7 +32,7 @@ function Login() {
             alert("Login Successful");
 
             navigate("/createproject");
-            window.location.reload();
+            
 
         } else {
 
@@ -46,11 +46,11 @@ function Login() {
 }
     
   return (
-    <div className="min-h-screen bg-orange-50 flex justify-center items-center">
+    <div className="min-h-screen bg-orange-50 flex justify-center items-center px-4 py-10">
 
-      <div className="bg-white p-8 rounded-xl shadow-lg w-96">
+      <div className="bg-white p-8 md:p-10 rounded-2xl shadow-lg w-full max-w-md flex flex-col gap-5">
 
-        <h1 className="text-3xl font-bold text-orange-600 text-center">
+        <h1 className="text-3xl md:text-4xl font-bold text-orange-600 text-center mb-2">
           Login
         </h1>
 
@@ -59,7 +59,7 @@ function Login() {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full border p-3 rounded-lg mt-6"
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
         />
 
         <input
@@ -67,12 +67,12 @@ function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border p-3 rounded-lg mt-4"
+            className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
         />
 
         <button
             onClick={login}
-            className="w-full bg-orange-500 text-white py-3 rounded-lg mt-6"
+            className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold shadow-sm hover:bg-orange-600 transition mt-2"
         >
             Login
         </button>

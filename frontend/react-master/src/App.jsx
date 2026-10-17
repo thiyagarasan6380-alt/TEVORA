@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+
+import { useState } from "react";
 import Home from "./pages/Home";
 import Projects from "./pages/Projects";
 import Login from "./pages/Login";
@@ -13,11 +15,22 @@ import TeamMembers from "./pages/TeamMembers";
 function App() {
 
     const user = localStorage.getItem("user");
+     const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
         <div className="flex h-screen overflow-hidden">
 
-            <Sidebar />
+            <Sidebar
+                mobileOpen={mobileOpen}
+                setMobileOpen={setMobileOpen}
+            />
+
+            <button
+            onClick={() => setMobileOpen(true)}
+            className="md:hidden fixed top-4 left-4 z-30 bg-orange-500 text-white p-2 rounded-lg"
+        >
+            ☰
+        </button>
 
             <div className="flex-1 h-screen overflow-y-auto p-4">
 
@@ -61,3 +74,4 @@ function App() {
     );
 }
 export default App;
+

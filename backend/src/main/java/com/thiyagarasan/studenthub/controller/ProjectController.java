@@ -18,7 +18,7 @@ import com.thiyagarasan.studenthub.repository.ProjectRepository;
 
 @RestController
 @RequestMapping("/projects")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class ProjectController {
 
     @Autowired
