@@ -1,23 +1,39 @@
+
 package com.thiyagarasan.studenthub.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Project")
+@Table(name = "projects")
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @Column(name = "project_name", nullable = false, length = 150)
     private String projectName;
-    private String description;
-    private String status;
-    private String owner;
 
-    private String skillName;
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false, length = 30)
+    private String status = "OPEN";
+
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private Student owner;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
     public Project() {
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
     }
 
     public int getId() {
@@ -52,19 +68,19 @@ public class Project {
         this.status = status;
     }
 
-    public String getOwner() {
+    public Student getOwner() {
         return owner;
     }
 
-    public void setOwner(String owner) {
+    public void setOwner(Student owner) {
         this.owner = owner;
     }
 
-    public String getSkillName() {
-        return skillName;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setSkillName(String skillName) {
-        this.skillName = skillName;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

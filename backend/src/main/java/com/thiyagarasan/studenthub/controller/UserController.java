@@ -1,47 +1,75 @@
 package com.thiyagarasan.studenthub.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.thiyagarasan.studenthub.dto.RegisterRequest;
+import com.thiyagarasan.studenthub.dto.LoginRequest;
+import com.thiyagarasan.studenthub.dto.AuthResponse;
+
+import com.thiyagarasan.studenthub.entity.Student;
 import com.thiyagarasan.studenthub.entity.User;
+
 import com.thiyagarasan.studenthub.repository.UserRepository;
+import com.thiyagarasan.studenthub.service.UserService;
 
 @RestController
 @RequestMapping("/users")
 @CrossOrigin(origins = "*")
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserService userService;
+    private final UserRepository userRepository;
 
-    @GetMapping("/test")
-    public String test() {
-        return "Backend Working";
+    public UserController(UserService userService,
+            UserRepository userRepository) {
+        this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody User user) {
-        return userRepository.save(user);
+    public AuthResponse register(@RequestBody RegisterRequest request) {
+
+        Student student = userService.register(request);
+
+        return new AuthResponse(
+                "Registration successful",
+                student.getUser().getId(),
+                student.getId(),
+                student.getUser().getUsername(),
+                student.getName(),
+                student.getEmail());
     }
 
     @PostMapping("/login")
-    public User login(@RequestBody User user) {
+    public AuthResponse login(@RequestBody LoginRequest request) {
 
-        System.out.println("Username: " + user.getUsername());
-        System.out.println("Password: " + user.getPassword());
+        if (request.getUsername() == null ||
+                request.getPassword() == null ||
+                request.getUsername().isBlank() ||
+                request.getPassword().isBlank()) {
 
-        User foundUser = userRepository.findByUsernameAndPassword(
+            throw new RuntimeException("Username and password are required");
+        }
+
+        String username = request.getUsername().trim();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+
+        if (!userService.checkPassword(
+                request.getPassword(), user.getPassword())) {
+
+            throw new RuntimeException("Invalid username or password");
+        }
+
+        Student student = userService.getStudentByUserId(user.getId());
+
+        return new AuthResponse(
+                "Login successful",
+                user.getId(),
+                student.getId(),
                 user.getUsername(),
-                user.getPassword());
-
-        System.out.println("Found User: " + foundUser);
-
-        return foundUser;
+                student.getName(),
+                student.getEmail());
     }
-
-    @GetMapping("/id/{id}")
-    public User getUserById(@PathVariable int id) {
-        return userRepository.findById(id).orElse(null);
-    }
-
 }

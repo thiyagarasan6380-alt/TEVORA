@@ -1,21 +1,39 @@
 package com.thiyagarasan.studenthub.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Application")
+@Table(name = "applications")
 public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    private int studentId;
-    private int projectId;
-    private String status;
+    @ManyToOne
+    @JoinColumn(name = "student_id", nullable = false)
+    private Student student;
+
+    @ManyToOne
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+
+    @Column(nullable = false, length = 30)
+    private String status = "PENDING";
+
+    @Column(name = "applied_at", updatable = false)
+    private LocalDateTime appliedAt;
 
     public Application() {
     }
+
+    @PrePersist
+    protected void onCreate() {
+        appliedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
 
     public int getId() {
         return id;
@@ -25,20 +43,20 @@ public class Application {
         this.id = id;
     }
 
-    public int getStudentId() {
-        return studentId;
+    public Student getStudent() {
+        return student;
     }
 
-    public void setStudentId(int studentId) {
-        this.studentId = studentId;
+    public void setStudent(Student student) {
+        this.student = student;
     }
 
-    public int getProjectId() {
-        return projectId;
+    public Project getProject() {
+        return project;
     }
 
-    public void setProjectId(int projectId) {
-        this.projectId = projectId;
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     public String getStatus() {
@@ -47,5 +65,9 @@ public class Application {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getAppliedAt() {
+        return appliedAt;
     }
 }

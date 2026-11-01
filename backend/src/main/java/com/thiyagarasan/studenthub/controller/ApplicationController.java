@@ -1,62 +1,62 @@
+
 package com.thiyagarasan.studenthub.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.*;
 
-import com.thiyagarasan.studenthub.entity.Application;
-import com.thiyagarasan.studenthub.repository.ApplicationRepository;
-
-import java.util.List;
+import com.thiyagarasan.studenthub.dto.ApplicationResponse;
+import com.thiyagarasan.studenthub.service.ApplicationService;
 
 @RestController
 @RequestMapping("/applications")
 @CrossOrigin(origins = "*")
 public class ApplicationController {
 
-    @Autowired
-    private ApplicationRepository applicationRepository;
+    private final ApplicationService applicationService;
 
-    @PostMapping
-    public Application apply(@RequestBody Application application) {
-        application.setStatus("Pending");
-        return applicationRepository.save(application);
+    public ApplicationController(ApplicationService applicationService) {
+        this.applicationService = applicationService;
     }
 
+    // Apply to a project
+    @PostMapping
+    public ApplicationResponse apply(
+            @RequestParam int studentId,
+            @RequestParam int projectId) {
+
+        return applicationService.apply(studentId, projectId);
+    }
+
+    // View all applications
+    @GetMapping
+    public List<ApplicationResponse> getAllApplications() {
+
+        return applicationService.getAllApplications();
+    }
+
+    // View applications for a project
     @GetMapping("/project/{projectId}")
-    public List<Application> getApplicationsByProject(
+    public List<ApplicationResponse> getProjectApplications(
             @PathVariable int projectId) {
 
-        return applicationRepository.findByProjectId(projectId);
+        return applicationService.getProjectApplications(projectId);
     }
 
-    @PutMapping("/accept/{id}")
-    public Application acceptApplicant(@PathVariable int id) {
-
-        Application application = applicationRepository.findById(id).orElse(null);
-
-        if (application != null) {
-            application.setStatus("Accepted");
-            return applicationRepository.save(application);
-        }
-
-        return null;
-    }
-
-    @GetMapping
-    public List<Application> getAllApplications() {
-        return applicationRepository.findAll();
-    }
-
-    @GetMapping("/accepted")
-    public List<Application> getAcceptedApplications() {
-        return applicationRepository.findByStatus("Accepted");
-    }
-
+    // View applications submitted by a student
     @GetMapping("/student/{studentId}")
-    public List<Application> getStudentApplications(
+    public List<ApplicationResponse> getStudentApplications(
             @PathVariable int studentId) {
 
-        return applicationRepository.findByStudentId(studentId);
+        return applicationService.getStudentApplications(studentId);
     }
 
+    // Accept an application
+    @PutMapping("/accept/{id}")
+    public ApplicationResponse acceptApplication(
+            @PathVariable int id,
+            @RequestParam int ownerId) {
+
+        return applicationService.acceptApplication(id, ownerId);
+    }
 }
