@@ -1,202 +1,197 @@
+
 import { useState, useEffect } from "react";
 import ProjectCard from "../components/ProjectCard";
 
 function CreateProject() {
-
     const [projectName, setProjectName] = useState("");
     const [skillName, setSkillName] = useState("");
     const [description, setDescription] = useState("");
 
     const [projects, setProjects] = useState([]);
     const [applications, setApplications] = useState([]);
-
     const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
+    const userId = Number(localStorage.getItem("userId"));
 
+    useEffect(() => {
         fetch("http://localhost:8080/projects")
-            .then((response) => response.json())
-            .then((data) => setProjects(data))
-            .catch((error) => console.log(error));
+            .then(response => {
+                if (!response.ok) throw new Error("Failed to load projects");
+                return response.json();
+            })
+            .then(data => setProjects(Array.isArray(data) ? data : []))
+            .catch(error => console.error(error));
 
         fetch("http://localhost:8080/applications")
-            .then((response) => response.json())
-            .then((data) => setApplications(data))
-            .catch((error) => console.log(error));
-
+            .then(response => {
+                if (!response.ok) throw new Error("Failed to load applications");
+                return response.json();
+            })
+            .then(data => setApplications(Array.isArray(data) ? data : []))
+            .catch(error => console.error(error));
     }, []);
 
-    function Submit() {
+    async function Submit() {
+        if (!projectName.trim() || !description.trim()) {
+            alert("Please enter project name and description");
+            return;
+        }
 
-        const newProject = {
+        if (!userId) {
+            alert("Please login before creating a project");
+            return;
+        }
 
-            projectName: projectName,
-            skillName: skillName,
-            description: description,
-            status: "Open",
+        try {
+            const response = await fetch("http://localhost:8080/projects", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    projectName: projectName.trim(),
+                    description: description.trim(),
+                    ownerId: userId
+                })
+            });
 
-            owner: localStorage.getItem("user"),
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || "Project creation failed");
+            }
 
-        };
+            const data = await response.json();
 
-        fetch("http://localhost:8080/projects", {
+            setProjects(prev => [...prev, data]);
 
-            method: "POST",
+            setProjectName("");
+            setSkillName("");
+            setDescription("");
 
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify(newProject)
-
-        })
-
-        .then((response) => response.json())
-
-        .then((data) => {
-
-            setProjects((prev) => [...prev, data]);
-
-        });
-
-        setProjectName("");
-        setSkillName("");
-        setDescription("");
+            alert("Project created successfully!");
+        } catch (error) {
+            console.error("Create project error:", error);
+            alert(error.message);
+        }
     }
 
-    function Delete(indexToDelete) {
+    async function Delete(indexToDelete) {
+        const project = projects[indexToDelete];
 
-        const projectId = projects[indexToDelete].id;
+        if (!project) return;
 
-        fetch(`http://localhost:8080/projects/${projectId}`, {
-
-            method: "DELETE"
-
-        })
-
-        .then(() => {
-
-            const updateProjects = projects.filter(
-                (_, index) => index !== indexToDelete
+        try {
+            const response = await fetch(
+                `http://localhost:8080/projects/${project.id}?ownerId=${userId}`,
+                { method: "DELETE" }
             );
 
-            setProjects(updateProjects);
+            if (!response.ok) {
+                throw new Error("Unable to delete project");
+            }
 
-        })
-
-        .catch((error) => console.log(error));
+            setProjects(prev =>
+                prev.filter(item => item.id !== project.id)
+            );
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
     }
 
-    function Update(index) {
+    async function Update(index) {
+        const project = projects[index];
 
         const newName = prompt(
             "Enter new project name",
-            projects[index].projectName
+            project.projectName
         );
 
-        const newSkill = prompt(
-            "Enter skills",
-            projects[index].skillName
-        );
-
-        if (!newName) return;
+        if (!newName || !newName.trim()) return;
 
         const updatedProject = {
-
-            ...projects[index],
-
-            projectName: newName,
-            skillName: newSkill
-
+            ...project,
+            projectName: newName.trim()
         };
 
-        fetch(`http://localhost:8080/projects/${projects[index].id}`, {
+        try {
+            const response = await fetch(
+                `http://localhost:8080/projects/${project.id}?ownerId=${userId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(updatedProject)
+                }
+            );
 
-            method: "PUT",
+            if (!response.ok) {
+                throw new Error("Unable to update project");
+            }
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+            const data = await response.json();
 
-            body: JSON.stringify(updatedProject)
-
-        })
-
-        .then(response => response.json())
-
-        .then(data => {
-
-            const updatedProjects = [...projects];
-
-            updatedProjects[index] = data;
-
-            setProjects(updatedProjects);
-
-        });
+            setProjects(prev =>
+                prev.map(item =>
+                    item.id === project.id ? data : item
+                )
+            );
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
     }
 
-    function changeStatus(index) {
-
+    async function changeStatus(index) {
         const project = projects[index];
 
         const newStatus =
-            project.status === "Open" ? "Closed" : "Open";
+            project.status?.toUpperCase() === "OPEN"
+                ? "CLOSED"
+                : "OPEN";
 
-        const updatedProject = {
+        try {
+            const response = await fetch(
+                `http://localhost:8080/projects/${project.id}/status?ownerId=${userId}&status=${newStatus}`,
+                { method: "PUT" }
+            );
 
-            ...project,
+            if (!response.ok) {
+                throw new Error("Unable to change project status");
+            }
 
-            status: newStatus
+            const data = await response.json();
 
-        };
-
-        fetch(`http://localhost:8080/projects/${project.id}`, {
-
-            method: "PUT",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify(updatedProject)
-
-        })
-
-        .then(response => response.json())
-
-        .then(data => {
-
-            const updatedProjects = [...projects];
-
-            updatedProjects[index] = data;
-
-            setProjects(updatedProjects);
-
-        })
-
-        .catch(error => console.log(error));
+            setProjects(prev =>
+                prev.map(item =>
+                    item.id === project.id ? data : item
+                )
+            );
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
     }
 
-    const filteredProjects = projects.filter((project) =>
-
-        project.projectName
+    const filteredProjects = projects.filter(project =>
+        String(project.projectName ?? "")
             .toLowerCase()
             .includes(searchTerm.toLowerCase())
-
     );
 
-    function acceptApplicant(applicationId) {
+    async function acceptApplicant(applicationId) {
+        try {
+            const response = await fetch(
+                `http://localhost:8080/applications/accept/${applicationId}?ownerId=${userId}`,
+                { method: "PUT" }
+            );
 
-        fetch(
-            `http://localhost:8080/applications/accept/${applicationId}`,
-            {
-                method: "PUT"
+            if (!response.ok) {
+                throw new Error("Unable to accept application");
             }
-        )
 
-        .then(response => response.json())
-
-        .then(data => {
+            const data = await response.json();
 
             setApplications(prev =>
                 prev.map(app =>
@@ -204,57 +199,48 @@ function CreateProject() {
                 )
             );
 
-            alert("Applicant Accepted");
-
-        })
-
-        .catch(error => console.log(error));
+            alert("Applicant accepted!");
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
     }
 
-    function applyProject(projectId) {
+    async function applyProject(projectId) {
+        const studentId = userId;
 
-        const studentId = Number(
-            localStorage.getItem("userId")
-        );
+        if (!studentId) {
+            alert("Please login first");
+            return;
+        }
 
-        fetch("http://localhost:8080/applications", {
+        try {
+            const response = await fetch(
+                `http://localhost:8080/applications?studentId=${studentId}&projectId=${projectId}`,
+                { method: "POST" }
+            );
 
-            method: "POST",
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || "Application failed");
+            }
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+            const data = await response.json();
 
-            body: JSON.stringify({
+            setApplications(prev => [...prev, data]);
 
-                studentId: studentId,
-                projectId: projectId
-
-            })
-
-        })
-
-        .then(res => res.json())
-
-        .then(data => {
-
-            alert("Application Submitted");
-
-            console.log(data);
-
-        })
-
-        .catch(error => console.log(error));
+            alert("Application submitted successfully!");
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
     }
 
     return (
-
         <div className="min-h-screen bg-orange-50 px-4 py-10">
-
             <div className="max-w-5xl mx-auto">
 
                 <div className="text-center mb-10">
-
                     <h1 className="text-4xl md:text-5xl font-bold text-orange-600">
                         Student Project Hub
                     </h1>
@@ -262,7 +248,6 @@ function CreateProject() {
                     <p className="text-gray-600 mt-3 text-lg">
                         Find. Collaborate. Build.
                     </p>
-
                 </div>
 
                 <div className="bg-white shadow-lg rounded-2xl p-6 md:p-8 max-w-lg mx-auto flex flex-col gap-5">
@@ -271,14 +256,14 @@ function CreateProject() {
                         type="text"
                         placeholder="Enter project name..."
                         value={projectName}
-                        onChange={(e) => setProjectName(e.target.value)}
+                        onChange={e => setProjectName(e.target.value)}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                     />
 
                     <textarea
                         placeholder="Enter project description..."
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={e => setDescription(e.target.value)}
                         rows={4}
                         className="w-full border border-gray-300 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                     />
@@ -287,7 +272,7 @@ function CreateProject() {
                         type="text"
                         placeholder="Enter skill name..."
                         value={skillName}
-                        onChange={(e) => setSkillName(e.target.value)}
+                        onChange={e => setSkillName(e.target.value)}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                     />
 
@@ -297,56 +282,37 @@ function CreateProject() {
                     >
                         Create Project
                     </button>
-
                 </div>
 
                 <div className="max-w-lg mx-auto mt-10">
-
                     <input
                         type="text"
                         placeholder="Search Project..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={e => setSearchTerm(e.target.value)}
                         className="bg-white w-full border border-gray-300 rounded-lg p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                     />
-
                 </div>
 
                 <div className="mt-8 flex flex-col gap-6">
-
                     {filteredProjects.map((project, index) => (
-
                         <ProjectCard
-
-                            key={index}
-
+                            key={project.id}
                             project={project}
-
                             index={index}
-
                             Delete={Delete}
-
                             Update={Update}
-
                             changeStatus={changeStatus}
-
                             applyProject={applyProject}
-
                             acceptApplicant={acceptApplicant}
-
                             applications={applications}
-
                         />
-
                     ))}
-
                 </div>
 
             </div>
-
         </div>
     );
 }
 
 export default CreateProject;
-
