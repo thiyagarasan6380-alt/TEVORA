@@ -65,6 +65,8 @@ It brings project owners and students together through a simple project and appl
 
 ## 🟧 Project Structure
 
+You Can See the actual full Diagram : (https://gitdiagram.com/thiyagarasan6380-alt/tevora)
+
 ```text
 TEVORA/
 │
