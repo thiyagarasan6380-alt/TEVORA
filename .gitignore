@@ -1,4 +1,25 @@
+﻿# IDE
 .vscode/
-frontend/node_modules/
-backend/src/main/resources/application.properties
+.idea/
+
+# Dependencies
+**/node_modules/
+
+# Build output
+**/target/
+**/dist/
+**/build/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Java
 *.class
+
+# Logs
+*.log
+
+# Local generated classpath
+backend/classpath.txt
