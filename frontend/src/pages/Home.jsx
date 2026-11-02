@@ -1,36 +1,71 @@
+import API_BASE_URL from "../api";
+
 import { Link } from "react-router-dom";
 import {useEffect,useState} from "react";
 function Home() {
 
+  const [teamMembers, setTeamMembers] = useState([]);
+
   const [projects,setProjects]=useState([]);
   const [applications,setApplications]=useState([]);
   useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const [projectResponse, applicationResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/projects`),
+                fetch(`${API_BASE_URL}/applications`)
+            ]);
 
-    fetch("http://localhost:8080/projects")
-        .then(response => response.json())
-        .then(data => setProjects(data))
-        .catch(error => console.log(error));
+            const projectData = await projectResponse.json();
+            const applicationData = await applicationResponse.json();
 
-    fetch("http://localhost:8080/applications")
-        .then(response => response.json())
-        .then(data => setApplications(data))
-        .catch(error => console.log(error));
+            setProjects(projectData);
+            setApplications(applicationData);
 
+            // Fetch actual team members for every project
+            const teamData = await Promise.all(
+                projectData.map(async (project) => {
+                    try {
+                        const response = await fetch(
+                            `${API_BASE_URL}/teams/project/${project.id}/members`
+                        );
+
+                        if (!response.ok) return [];
+
+                        return await response.json();
+                    } catch {
+                        return [];
+                    }
+                })
+            );
+
+            setTeamMembers(teamData.flat());
+
+        } catch (error) {
+            console.error("Error fetching home data:", error);
+        }
+    };
+
+    fetchData();
 }, []);
-    const totalProject=projects.length;
-    const totalApplicant = applications.length;
 
-    const totalTeamMembers = applications.filter(
-      (application) => application.status === "Accepted"
-    ).length;
-    const openProjects=projects.filter(
-      (project)=>project.status==="Open"
-    ).length;
-    const currentUser=localStorage.getItem("user");
-    const myProjects=projects.filter(
-      (project)=>project.owner===currentUser
-    );
+const totalProject = projects.length;
 
+const totalApplicant = applications.length;
+
+const totalTeamMembers = teamMembers.length;
+
+const openProjects = projects.filter(
+    project => project.status?.toUpperCase() === "OPEN"
+).length;
+
+const currentUser = localStorage.getItem("user");
+
+const currentStudentId = Number(localStorage.getItem("studentId"));
+
+const myProjects = projects.filter(
+    project => Number(project.ownerId) === currentStudentId
+);
   return (
     <div className="flex justify-center min-h-screen bg-orange-50 px-4 py-10">
 
@@ -78,7 +113,7 @@ function Home() {
             {totalApplicant}+
           </h2>
           <p className="text-gray-600 mt-2">
-            Applicant
+            Applicants
           </p>
         </div>
 
@@ -96,7 +131,7 @@ function Home() {
             {totalTeamMembers}
           </h2>
           <p className="text-gray-600 mt-2">
-            Teams
+            Team Members
           </p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition">

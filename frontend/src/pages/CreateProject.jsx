@@ -11,7 +11,8 @@ function CreateProject() {
     const [applications, setApplications] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const userId = Number(localStorage.getItem("userId"));
+    // Use studentId for all project and application operations
+    const studentId = Number(localStorage.getItem("studentId"));
 
     useEffect(() => {
         fetch("http://localhost:8080/projects")
@@ -37,7 +38,7 @@ function CreateProject() {
             return;
         }
 
-        if (!userId) {
+        if (!studentId) {
             alert("Please login before creating a project");
             return;
         }
@@ -51,7 +52,7 @@ function CreateProject() {
                 body: JSON.stringify({
                     projectName: projectName.trim(),
                     description: description.trim(),
-                    ownerId: userId
+                    ownerId: studentId
                 })
             });
 
@@ -82,7 +83,7 @@ function CreateProject() {
 
         try {
             const response = await fetch(
-                `http://localhost:8080/projects/${project.id}?ownerId=${userId}`,
+                `http://localhost:8080/projects/${project.id}?ownerId=${studentId}`,
                 { method: "DELETE" }
             );
 
@@ -116,7 +117,7 @@ function CreateProject() {
 
         try {
             const response = await fetch(
-                `http://localhost:8080/projects/${project.id}?ownerId=${userId}`,
+                `http://localhost:8080/projects/${project.id}?ownerId=${studentId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -153,7 +154,7 @@ function CreateProject() {
 
         try {
             const response = await fetch(
-                `http://localhost:8080/projects/${project.id}/status?ownerId=${userId}&status=${newStatus}`,
+                `http://localhost:8080/projects/${project.id}/status?ownerId=${studentId}&status=${newStatus}`,
                 { method: "PUT" }
             );
 
@@ -183,7 +184,7 @@ function CreateProject() {
     async function acceptApplicant(applicationId) {
         try {
             const response = await fetch(
-                `http://localhost:8080/applications/accept/${applicationId}?ownerId=${userId}`,
+                `http://localhost:8080/applications/accept/${applicationId}?ownerId=${studentId}`,
                 { method: "PUT" }
             );
 
@@ -207,8 +208,6 @@ function CreateProject() {
     }
 
     async function applyProject(projectId) {
-        const studentId = userId;
-
         if (!studentId) {
             alert("Please login first");
             return;

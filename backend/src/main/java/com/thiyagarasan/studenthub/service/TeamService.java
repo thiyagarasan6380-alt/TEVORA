@@ -2,6 +2,7 @@
 package com.thiyagarasan.studenthub.service;
 
 import java.util.List;
+import com.thiyagarasan.studenthub.entity.TeamMember;
 
 import com.thiyagarasan.studenthub.dto.TeamResponse;
 import com.thiyagarasan.studenthub.dto.TeamMemberResponse;
@@ -99,6 +100,22 @@ public class TeamService {
     }
 
     // View team members
+    // View team members using project ID
+    public List<TeamMemberResponse> getTeamMembersByProject(int projectId) {
+
+        Team team = teamRepository.findByProject_Id(projectId)
+                .orElse(null);
+
+        if (team == null) {
+            return List.of();
+        }
+
+        return teamMemberRepository.findByTeam_Id(team.getId())
+                .stream()
+                .map(this::convertMember)
+                .toList();
+    }
+
     public List<TeamMember> getTeamMembers(int teamId) {
 
         if (!teamRepository.existsById(teamId)) {

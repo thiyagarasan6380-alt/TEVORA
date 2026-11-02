@@ -16,15 +16,21 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final StudentRepository studentRepository;
     private final ProjectRepository projectRepository;
+    private final TeamRepository teamRepository;
+    private final TeamService teamService;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
             StudentRepository studentRepository,
-            ProjectRepository projectRepository) {
+            ProjectRepository projectRepository,
+            TeamRepository teamRepository,
+            TeamService teamService) {
 
         this.applicationRepository = applicationRepository;
         this.studentRepository = studentRepository;
         this.projectRepository = projectRepository;
+        this.teamRepository = teamRepository;
+        this.teamService = teamService;
     }
 
     // Convert entity into DTO
@@ -103,7 +109,7 @@ public class ApplicationService {
                 .toList();
     }
 
-    // Accept an applicant
+    // Accept applicant and automatically add to team
     @Transactional
     public ApplicationResponse acceptApplication(
             int applicationId, int ownerId) {
@@ -112,7 +118,8 @@ public class ApplicationService {
                 .orElseThrow(() -> new RuntimeException("Application not found"));
 
         if (application.getProject().getOwner().getId() != ownerId) {
-            throw new RuntimeException("Only the project owner can accept applicants");
+            throw new RuntimeException(
+                    "Only the project owner can accept applicants");
         }
 
         if (!"OPEN".equalsIgnoreCase(application.getProject().getStatus())) {
@@ -123,9 +130,30 @@ public class ApplicationService {
             throw new RuntimeException("Application has already been processed");
         }
 
+        // Change application status
         application.setStatus("ACCEPTED");
 
-        return convertToResponse(
-                applicationRepository.save(application));
+        // Save immediately so TeamService can verify ACCEPTED status
+        applicationRepository.saveAndFlush(application);
+
+        int projectId = application.getProject().getId();
+        int studentId = application.getStudent().getId();
+
+        // Find existing team or create a new one
+        Team team = teamRepository.findByProject_Id(projectId)
+                .orElse(null);
+
+        if (team == null) {
+            teamService.createTeam(projectId, ownerId);
+
+            team = teamRepository.findByProject_Id(projectId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Unable to create project team"));
+        }
+
+        // Add accepted applicant to the team
+        teamService.addMember(team.getId(), studentId);
+
+        return convertToResponse(application);
     }
 }

@@ -4,10 +4,9 @@ package com.thiyagarasan.studenthub.controller;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
+
 import com.thiyagarasan.studenthub.dto.TeamResponse;
 import com.thiyagarasan.studenthub.dto.TeamMemberResponse;
-
-import com.thiyagarasan.studenthub.entity.Team;
 import com.thiyagarasan.studenthub.entity.TeamMember;
 import com.thiyagarasan.studenthub.service.TeamService;
 
@@ -40,11 +39,19 @@ public class TeamController {
         return teamService.addMember(teamId, studentId);
     }
 
-    // View team members
+    // View team members using team ID
     @GetMapping("/{teamId}/members")
     public List<TeamMember> getTeamMembers(
             @PathVariable int teamId) {
 
         return teamService.getTeamMembers(teamId);
+    }
+
+    // View team members using project ID
+    @GetMapping("/project/{projectId}/members")
+    public List<TeamMemberResponse> getTeamMembersByProject(
+            @PathVariable int projectId) {
+
+        return teamService.getTeamMembersByProject(projectId);
     }
 }

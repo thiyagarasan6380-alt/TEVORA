@@ -67,6 +67,11 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 
+    public Student getStudentById(int studentId) {
+        return studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+    }
+
     public boolean checkPassword(
             String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(

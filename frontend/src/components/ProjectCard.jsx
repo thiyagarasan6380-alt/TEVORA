@@ -1,4 +1,5 @@
-import {useState,useEffect}from "react";
+
+import { useState, useEffect } from "react";
 import API_BASE_URL from "../api";
 
 function ProjectCard({
@@ -11,54 +12,91 @@ function ProjectCard({
     acceptApplicant,
     applications
 }) {
+    const currentStudentId = Number(localStorage.getItem("studentId"));
+    const isOwner = currentStudentId === Number(project.ownerId);
 
-    const currentUser = localStorage.getItem("user");
-    const isOwner = currentUser === project.owner;
-    const [userNames,setUserNames]=useState({});
+    const [userNames, setUserNames] = useState({});
+    const [teamMembers, setTeamMembers] = useState([]);
+
+    // Fetch applicant names
+    useEffect(() => {
+        const studentIds = [
+            ...new Set(
+                applications.map(app => Number(app.studentId))
+            )
+        ];
+
+        Promise.all(
+            studentIds.map(async id => {
+                try {
+                    const response = await fetch(
+                        `${API_BASE_URL}/users/id/${id}`
+                    );
+
+                    if (!response.ok) {
+                        return { id, username: `Student ${id}` };
+                    }
+
+                    const user = await response.json();
+
+                    return {
+                        id,
+                        username: user.username || user.name || `Student ${id}`
+                    };
+                } catch (error) {
+                    console.error("Unable to fetch student:", error);
+                    return { id, username: `Student ${id}` };
+                }
+            })
+        ).then(users => {
+            const names = {};
+
+            users.forEach(user => {
+                names[user.id] = user.username;
+            });
+
+            setUserNames(names);
+        });
+    }, [applications]);
 
     useEffect(() => {
-    const studentIds = [
-        ...new Set(
-            applications.map((app) => app.studentId)
-        )
-    ];
+    const fetchTeamMembers = async () => {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/teams/project/${project.id}/members`
+            );
 
-    Promise.all(
-        studentIds.map((id) =>
-            fetch(`${API_BASE_URL}/users/id/${id}`)
-                .then((res) => res.json())
-                .then((user) => ({
-                    id,
-                    username: user.username
-                }))
-        )
-    ).then((users) => {
-        const names = {};
+            if (!response.ok) {
+                throw new Error("Failed to fetch team members");
+            }
 
-        users.forEach((user) => {
-            names[user.id] = user.username;
-        });
+            const data = await response.json();
+            setTeamMembers(data);
+        } catch (error) {
+            console.error("Error fetching team members:", error);
+            setTeamMembers([]);
+        }
+    };
 
-        setUserNames(names);
-    });
-}, [applications]);
+    fetchTeamMembers();
+}, [project.id]);
 
     const skills =
-    typeof project.skillName === "string"
-        ? project.skillName.split(",")
-        : project.skillName || [];
-const projectApplications = applications.filter(
-    (app) => app.projectId === project.id
-);
+        typeof project.skillName === "string"
+            ? project.skillName.split(",")
+            : project.skillName || [];
 
-const pendingApplications = projectApplications.filter(
-    (app) => app.status === "Pending"
-);
+    // Match applications with this project
+    const projectApplications = applications.filter(
+        app => Number(app.projectId) === Number(project.id)
+    );
 
-const acceptedApplications = projectApplications.filter(
-    (app) => app.status === "Accepted"
-);
+    // Handle uppercase and lowercase status values
+    const pendingApplications = projectApplications.filter(
+        app => app.status?.toUpperCase() === "PENDING"
+    );
 
+    
     return (
         <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition p-6 md:p-8 max-w-3xl w-full mx-auto">
 
@@ -70,7 +108,7 @@ const acceptedApplications = projectApplications.filter(
                     </h2>
 
                     <p className="text-sm text-gray-500 mt-2">
-                        Created by: 👤 {project.owner}
+                        Created by: 👤 {project.ownerName}
                     </p>
 
                     <p className="text-sm text-gray-500 mt-1">
@@ -84,7 +122,7 @@ const acceptedApplications = projectApplications.filter(
 
                 <span
                     className={
-                        project.status === "Open"
+                        project.status?.toUpperCase() === "OPEN"
                             ? "bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap"
                             : "bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap"
                     }
@@ -103,7 +141,9 @@ const acceptedApplications = projectApplications.filter(
                 <div className="flex flex-wrap gap-2">
 
                     {skills.length === 0 ? (
-                        <p className="text-gray-400 text-sm">No Skills Added</p>
+                        <p className="text-gray-400 text-sm">
+                            No Skills Added
+                        </p>
                     ) : (
                         skills.map((skill, i) => (
                             <span
@@ -126,7 +166,7 @@ const acceptedApplications = projectApplications.filter(
                 </p>
 
                 <p className="text-gray-700 font-medium">
-                    👨‍💻 {acceptedApplications.length} Team Members
+                    👨‍💻 {teamMembers.length} Team Members
                 </p>
 
             </div>
@@ -142,13 +182,13 @@ const acceptedApplications = projectApplications.filter(
                         No applicants yet
                     </p>
                 ) : (
-                    pendingApplications.map((application) => (
+                    pendingApplications.map(application => (
                         <div
                             key={application.id}
                             className="flex justify-between items-center gap-3 bg-gray-50 rounded-lg p-3 mb-2"
                         >
                             <span className="text-gray-700">
-                                👤 {userNames[application.studentId] || "Loading..."}
+                                👤 {userNames[application.studentId] || `Student ${application.studentId}`}
                             </span>
 
                             {isOwner && (
@@ -171,14 +211,14 @@ const acceptedApplications = projectApplications.filter(
                     Team Members
                 </p>
 
-                {acceptedApplications.length === 0 ? (
+                {teamMembers.length === 0 ? (
                     <p className="text-gray-400 text-sm">
                         No team members yet
                     </p>
                 ) : (
-                    acceptedApplications.map((application) => (
-                        <p key={application.id} className="text-gray-700 mb-1">
-                            👨‍💻 {userNames[application.studentId] || "Loading..."}
+                    teamMembers.map(member => (
+                        <p key={member.id} className="text-gray-700 mb-1">
+                            👨‍💻 {member.studentName}
                         </p>
                     ))
                 )}

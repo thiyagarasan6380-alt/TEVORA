@@ -1,5 +1,7 @@
 package com.thiyagarasan.studenthub.controller;
 
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.thiyagarasan.studenthub.dto.RegisterRequest;
@@ -38,6 +40,17 @@ public class UserController {
                 student.getUser().getUsername(),
                 student.getName(),
                 student.getEmail());
+    }
+
+    @GetMapping("/id/{id}")
+    public Map<String, Object> getStudentById(@PathVariable int id) {
+
+        Student student = userService.getStudentById(id);
+
+        return Map.of(
+                "id", student.getId(),
+                "name", student.getName(),
+                "email", student.getEmail());
     }
 
     @PostMapping("/login")
